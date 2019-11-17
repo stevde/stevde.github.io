@@ -11,5 +11,14 @@
 	<atom:link href="https://stevede.github.io/series/index.xml" rel="self" type="application/rss+xml" />
     
     
+    <item>
+      <title>fast.ai NLP course</title>
+      <link>https://stevede.github.io/series/fastai-nlp/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://stevede.github.io/series/fastai-nlp/</guid>
+      <description>This is a series of notes on fast.ai&amp;rsquo;s A Code-First Intro to Natural Language Processing.</description>
+    </item>
+    
   </channel>
 </rss>
