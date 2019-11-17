@@ -1,2 +1,2 @@
-# stevde.github.io
-Personal blog
+# blog
+source for stevde.github.io
