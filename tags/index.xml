@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Tags on notes</title>
-    <link>https://stevede.github.io/tags/</link>
-    <description>Recent content in Tags on notes</description>
+    <title>Tags on 📚 notes</title>
+    <link>https://stevde.github.io/tags/</link>
+    <description>Recent content in Tags on 📚 notes</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <copyright>&amp;copy; {currentYear} Stephen Cunningham. Made using &lt;a href=&#39;https://gohugo.io/&#39;&gt;Hugo&lt;/a&gt; and &lt;a href=&#39;https://github.com/siegerts/hugo-theme-basic&#39;&gt;Hugo Theme Basic&lt;/a&gt;.</copyright>
     
-	<atom:link href="https://stevede.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://stevde.github.io/tags/index.xml" rel="self" type="application/rss+xml" />
     
     
   </channel>
