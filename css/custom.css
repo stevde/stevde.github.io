@@ -1,3 +1,12 @@
+/* colours */
+
+:root {
+  --main-green: rgba(134, 196, 112, 0.5);
+  --main-blue: rgba(41, 55, 105, 0.3);
+  --text-grey: #454545;
+  --translucent: rgba(255,255,255,0);
+}
+
 /* limit width for articles */
 article {
   max-width: 60ch;
@@ -16,14 +25,14 @@ div.highlight {
 
 div.highlight > pre {
   padding: 1ch 2ch;
-  border-radius: 15px;
-
+  border-radius: 10px;
+  overflow: auto;
 }
 
-article > p > code {
+p code, li code {
   background: lightgray;
   padding: 0.5px 3px;
-  border-radius: 0.3em;
+  border-radius: 3px;
   white-space: nowrap;
 }
 
@@ -69,9 +78,7 @@ article > p > code {
 }
 
 .article-title span {
-  /* background: #86C470; */
-  background: rgba(134, 196, 112, 0.5);
-  /* background: linear-gradient(180deg,rgba(255,255,255,0) 60%, lightgray 40%); */
+  background: var(--main-green);
   padding: 10px 0px;
 }
 
@@ -95,4 +102,48 @@ ul.tag-list {
   padding-right: 1px;
 }
 
-/* post list styling */
+/* anchors in headings */
+a.heading-anchor {
+  color: var(--text-grey);
+  text-decoration: none; 
+  background: linear-gradient(180deg,var(--translucent) 60%, var(--main-green) 50%);
+  padding: 5px 0px;
+}
+
+a.heading-anchor:visited {
+  color: var(--text-grey);
+}
+
+a.heading-anchor:hover {
+  color: var(--text-grey);
+}
+
+a.heading-anchor:active {
+  color: var(--text-grey);
+}
+
+article a {
+  text-decoration: none;
+  background: linear-gradient(180deg,var(--translucent) 80%, var(--main-green) 50%);
+}
+
+p a:visited, li a:visited {
+  color: var(--text-grey);
+  background: linear-gradient(180deg,var(--translucent) 80%, var(--main-blue) 50%);
+}
+
+p a:hover, li a:hover {
+  color: var(--text-grey);
+  background: linear-gradient(180deg,var(--translucent) 80%, var(--main-blue) 50%);
+}
+
+p a:active, li a:active {
+  color: var(--text-grey);
+  background: linear-gradient(180deg,var(--translucent) 80%, var(--main-blue) 50%);
+}
+
+/* images */
+article img {
+  max-width: 60ch;
+  border-radius: 10px;
+}
