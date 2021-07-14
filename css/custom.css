@@ -1,0 +1,71 @@
+/* limit width for articles */
+article {
+  max-width: 60ch;
+}
+
+body {
+  max-width: 70ch;
+}
+
+/* no-underline title */
+.main-title {
+  text-decoration: none;
+  font-size: 48px;
+  font-weight: bold;
+}
+
+/* topnav: right align the about etc */
+.topnav {
+  overflow: hidden;
+  position: relative;
+}
+
+.topnav-right {
+  float: right;
+  position: absolute;
+  bottom: 16%;
+  right: 15%;
+}
+
+/* align footer the same way */
+.bottomnav {
+  /* overflow: hidden; */
+  position: relative;
+  padding-top:10vh;
+}
+
+.bottomnav-right {
+  float: right;
+  position: absolute;
+  bottom: 5%;
+  right: 15%;
+}
+
+/* post styling */
+.article-title {
+  font-size: 36px;
+  text-align: left;
+  margin-bottom: 10px;
+}
+
+.article-date {
+  font-size: 14px;
+}
+
+ul.tag-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.tag-list li {
+  display: inline;
+  padding-right: 10px;
+  font-family: monospace;
+}
+
+.tag-list a::before {
+  content: "#";
+  padding-right: 1px;
+}
+
+/* post list styling */
