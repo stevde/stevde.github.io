@@ -17,12 +17,6 @@ body {
 }
 
 /* code blocks */
-div.highlight {
-  width: 70ch;
-  position: relative;
-  left: -5ch;
-}
-
 div.highlight > pre {
   padding: 1ch 2ch;
   border-radius: 10px;
