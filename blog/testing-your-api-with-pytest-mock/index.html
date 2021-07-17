@@ -1,0 +1,74 @@
+<!doctype html><html><head><html lang=en><meta charset=utf-8><title>Testing your API with `pytest-mock` | notes</title><link rel=manifest href=/site.webmanifest><link rel=apple-touch-icon href=/fav/apple-touch-icon.png><link rel=stylesheet href=/css/main.css><link rel=stylesheet href=/css/custom.css></head><body><div class=topnav><a href=https://stevde.github.io/ class=main-title>📚 notes</a><div class=topnav-right><a href=/>home</a>
+<a href=/about/>about</a></div></div><article><h1 class=article-title><span>Testing your API with <code>pytest-mock</code></span></h1><div class=article-date>July 17. 2021</div><ul class=tag-list><li><a href=/tags/pytest>pytest</a></li><li><a href=/tags/fpl>fpl</a></li></ul><p>For years I&rsquo;ve told myself I want to take part in <a href=https://fantasy.premierleague.com/>Fantasy Premier League</a> (FPL), and it seems like as good an excuse as any to flex some data science + engineering chops. One of the obvious data sources to start looking at is FPL&rsquo;s official API, which I learned about from <a href=https://towardsdatascience.com/fantasy-premier-league-value-analysis-python-tutorial-using-the-fpl-api-8031edfe9910>David Allen&rsquo;s great write up</a>. The endpoint given there seems to dump its entire dataset in one big <code>json</code> response.</p><p>Eventually, the idea will be to regularly query this endpoint for updates, but for now I&rsquo;m just interested in checking some assumptions about the data and building testable <a href=https://en.wikipedia.org/wiki/Extract,_transform,_load>ETL</a> code to process and store it. So while my data pipeline will involve calls to various APIs, I don&rsquo;t want to actually query those APIs every time I run my tests - repeated, unnecessary queries can lead to getting rate-limited, results in a lot of bandwidth usage, and the data can naturally change over time and break my tests. Instead of using the API, I want to set up a <strong>mock API</strong>.</p><h2 id=set-up><a class=heading-anchor href=#set-up>Set up</a></h2><p>I&rsquo;ve got a python project called <code>football-data</code> with the following layout:</p><div class=highlight><pre style=color:#d0d0d0;background-color:#202020;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>football-data                 <span style=color:#999;font-style:italic># root dir</span>
+├── football_data             <span style=color:#999;font-style:italic># python application dir</span>
+│   ├── __init__.py
+│   └── fpl                   <span style=color:#999;font-style:italic># fpl module</span>
+│       └── __init__.py       <span style=color:#999;font-style:italic># &lt;- fpl logic goes in here</span>
+└── tests                     <span style=color:#999;font-style:italic># test dir</span>
+    ├── __init__.py
+    ├── test_football_data.py
+    └── test_fpl.py           <span style=color:#999;font-style:italic># &lt;- test code for fpl logic</span>
+</code></pre></div><p>The two main files of interest are <code>football_data/fpl/__init__.py</code> and <code>tests/test_fpl.py</code>, which look as follows:</p><ul><li><strong><code>football_data/fpl/__init__.py</code>:</strong></li></ul><div class=highlight><pre style=color:#d0d0d0;background-color:#202020;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#6ab825;font-weight:700>import</span> <span style=color:#447fcf;text-decoration:underline>requests</span>
+
+BASE_URL = <span style=color:#ed9d13>&#34;https://fantasy.premierleague.com/api/bootstrap-static/&#34;</span>
+
+<span style=color:#6ab825;font-weight:700>def</span> <span style=color:#447fcf>get_data</span>():
+    r = requests.get(BASE_URL)
+    <span style=color:#6ab825;font-weight:700>return</span> r.json()
+</code></pre></div><ul><li><strong><code>tests/test_fpl.py</code>:</strong></li></ul><div class=highlight><pre style=color:#d0d0d0;background-color:#202020;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#6ab825;font-weight:700>from</span> <span style=color:#447fcf;text-decoration:underline>football_data</span> <span style=color:#6ab825;font-weight:700>import</span> fpl
+
+<span style=color:#6ab825;font-weight:700>def</span> <span style=color:#447fcf>test_get_data</span>():
+    expected_keys = [
+        <span style=color:#ed9d13>&#34;teams&#34;</span>,
+        <span style=color:#ed9d13>&#34;events&#34;</span>,
+        <span style=color:#ed9d13>&#34;total_players&#34;</span>,
+    ]
+
+    data = fpl.get_data()
+    actual_keys = data.keys()
+
+    <span style=color:#6ab825;font-weight:700>for</span> key <span style=color:#6ab825;font-weight:700>in</span> expected_keys:
+        <span style=color:#6ab825;font-weight:700>assert</span> key <span style=color:#6ab825;font-weight:700>in</span> actual_keys
+</code></pre></div><p>This test is simple enough: import <code>fpl</code> and call <code>get_data()</code>, then test that each of the expected keys are present. You can run this by calling <code>pytest -v</code> in the root dir, and you should see something like the following output:</p><div class=highlight><pre style=color:#d0d0d0;background-color:#202020;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>➜  football-data git:(main) pytest -v
+============= <span style=color:#24909d>test</span> session <span style=color:#40ffff>starts</span> =============
+
+...
+
+tests/test_fpl.py::test_get_data PASSED  [100%]
+
+============== <span style=color:#3677a9>1</span> passed in 0.21s ==============
+</code></pre></div><p>We love to see <code>PASSED [100%]</code> 😊.</p><p>But I don&rsquo;t actually want to call <code>call_data()</code> everytime I run this test: it downloads almost a megabyte of data! I also want to make sure that the output of this call is deterministic, so I that I can be sure my code changes don&rsquo;t affect output unexpectedly. So let&rsquo;s mock it instead.</p><h2 id=creating-the-mock-api><a class=heading-anchor href=#creating-the-mock-api>Creating the mock API</a></h2><p>In order to set up tests that can run repeatedly without querying the API, I need two things:</p><ol><li>Some example data from the API.</li><li>A mocked API object that can replace <code>get_data()</code>.</li></ol><p>Let&rsquo;s tackle these one-by-one.</p><h3 id=example-data><a class=heading-anchor href=#example-data>Example data</a></h3><p>First off let&rsquo;s get some actual data from the API. This will be our reference dataset - for the rest of development, we&rsquo;ll assume the data always looks like this. We can get this data by actually calling <code>get_data()</code> for real and saving the output (I did this via ipython). We save the data in <code>tests/resources/test_fpl.json</code>, so our directory layout now looks like:</p><div class=highlight><pre style=color:#d0d0d0;background-color:#202020;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-bash data-lang=bash>football-data                 <span style=color:#999;font-style:italic># root dir</span>
+├── football_data             <span style=color:#999;font-style:italic># python application dir</span>
+│   ├── __init__.py
+│   └── fpl                   <span style=color:#999;font-style:italic># fpl module</span>
+│       └── __init__.py       <span style=color:#999;font-style:italic># &lt;- fpl logic goes in here</span>
+└── tests                     <span style=color:#999;font-style:italic># test dir</span>
+    ├── resources             <span style=color:#999;font-style:italic># resources for tests</span>
+    │   └── test_fpl.json     <span style=color:#999;font-style:italic># example data for test_fpl.py</span>
+    ├── __init__.py
+    ├── test_football_data.py
+    └── test_fpl.py           <span style=color:#999;font-style:italic># &lt;- test code for fpl logic</span>
+</code></pre></div><p>Compare this with previous to see the difference.</p><p>Now we can supply this data in tests using <a href=https://docs.pytest.org/en/latest/how-to/fixtures.html><code>pytest.fixture</code></a>. Add the following to the top of <code>tests/test_fpl.py</code>:</p><div class=highlight><pre style=color:#d0d0d0;background-color:#202020;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:orange>@pytest</span>.fixture
+<span style=color:#6ab825;font-weight:700>def</span> <span style=color:#447fcf>test_data</span>():
+    <span style=color:#6ab825;font-weight:700>with</span> <span style=color:#24909d>open</span>(<span style=color:#ed9d13>&#34;tests/resources/test_fpl.json&#34;</span>) <span style=color:#6ab825;font-weight:700>as</span> f:
+        data = json.load(f)
+    <span style=color:#6ab825;font-weight:700>return</span> data
+</code></pre></div><h3 id=mocking-get_data><a class=heading-anchor href=#mocking-get_data>Mocking <code>get_data()</code></a></h3><p>Now we have everything we need to mock <code>get_data()</code>.</p><p>As it turns out, this is only a two-line change: one line to import <code>pytest_mock.mocker</code>, and another using <code>mocker.patch()</code>.</p><div class=highlight><pre style=color:#d0d0d0;background-color:#202020;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-python data-lang=python><span style=color:#6ab825;font-weight:700>from</span> <span style=color:#447fcf;text-decoration:underline>football_data</span> <span style=color:#6ab825;font-weight:700>import</span> fpl
+<span style=color:#6ab825;font-weight:700>from</span> <span style=color:#447fcf;text-decoration:underline>pytest_mock</span> <span style=color:#6ab825;font-weight:700>import</span> mocker
+
+<span style=color:#6ab825;font-weight:700>def</span> <span style=color:#447fcf>test_get_data</span>(mocker, test_data):
+    <span style=color:#999;font-style:italic># set up mock</span>
+    mocker.patch(<span style=color:#ed9d13>&#34;football_data.fpl.get_data&#34;</span>, return_value=test_data)
+
+    expected_keys = [
+        <span style=color:#ed9d13>&#34;teams&#34;</span>,
+        <span style=color:#ed9d13>&#34;events&#34;</span>,
+        <span style=color:#ed9d13>&#34;total_players&#34;</span>,
+    ]
+
+    data = fpl.get_data()
+    actual_keys = data.keys()
+
+    <span style=color:#6ab825;font-weight:700>for</span> key <span style=color:#6ab825;font-weight:700>in</span> expected_keys:
+        <span style=color:#6ab825;font-weight:700>assert</span> key <span style=color:#6ab825;font-weight:700>in</span> actual_keys
+</code></pre></div><p>A few things to note here:</p><ol><li>I found the the import path (the first arg to <code>mocker.patch()</code>) a little fiddly, and it took me a few goes to get it set up correctly. The only advice I have here is to use the full path of the function within the module (<code>package_name.module.func_name</code>).</li><li>Note that we pass two arguments to the test itself: <code>test_get_data(mocker, test_data)</code>. The first refers to the <code>mocker</code>, the second is the fixture we created in the previous section. <code>pytest</code> uses argument names to &ldquo;magically&rdquo; look up the matching fixtures.</li><li>Finally, note the <code>return_value</code> we give to <code>mocker.patch()</code> is the test data we downloaded in the previous section.</li></ol><p>From now on, when the code path gets to <code>fpl.get_data()</code>, what is executed is not the actual function from the <code>fpl</code> module, but a mocked version which just returns our test data.</p><h2 id=testing-with-the-wifi-off><a class=heading-anchor href=#testing-with-the-wifi-off>Testing with the wifi off</a></h2><p>One other little advantage of mocking your API calls is that you don&rsquo;t need internet access to run your tests (so if you like coding on the train, this really is for you). It&rsquo;s also an acid test for whether your mock API is working properly: turn off the wifi and see if your tests still pass!</p><h2 id=further-reading><a class=heading-anchor href=#further-reading>Further reading</a></h2><p>I used a couple of great articles while figuring out the FPL data and mocking:</p><ul><li>David Allen: <a href=https://towardsdatascience.com/fantasy-premier-league-value-analysis-python-tutorial-using-the-fpl-api-8031edfe9910>How to Access the Fantasy Premier League API, Build a Dataframe, and Analyze Using Jupyter, Python, and Pandas</a></li><li>Chang Hsin Lee: <a href=https://changhsinlee.com/pytest-mock/>pytest: How to mock in Python</a></li><li>Durga Swaroop Perla: <a href=https://medium.com/analytics-vidhya/mocking-in-python-with-pytest-mock-part-i-6203c8ad3606>Mocking functions Part I | Better Unit Testing in Python with pytest-mock</a></li></ul></article><div class=bottomnav><div class=bottomnav-right>&copy; 2021 Stephen Cunningham. Made using <a href=https://gohugo.io/>Hugo</a>.</div></div></body></html>
